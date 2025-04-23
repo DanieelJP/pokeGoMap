@@ -17,18 +17,18 @@ L.Icon.Default.mergeOptions({
 const pokestopIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [50, 82],
-  iconAnchor: [25, 82],
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
   shadowAnchor: [12, 41]
 });
 
 const gymIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [50, 82],
-  iconAnchor: [25, 82],
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
   shadowAnchor: [12, 41]
@@ -118,14 +118,23 @@ const PokemonMap: React.FC = () => {
 
   const generateRandomPokemons = async (lat: number, lon: number) => {
     const newPokemons: Pokemon[] = [];
+    
+    // Definimos los límites de España
+    const spainBounds = {
+      north: 43.8,
+      south: 36.0,
+      east: 3.3,
+      west: -9.3
+    };
+
     for (let i = 0; i < 5; i++) {
       const randomId = Math.floor(Math.random() * 151) + 1;
       try {
         const response = await axios.get(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
         
-        // Generar posición aleatoria
-        const randomLat = lat + (Math.random() - 0.5) * 0.1;
-        const randomLon = lon + (Math.random() - 0.5) * 0.1;
+        // Posición aleatoria dentro de España
+        const randomLat = spainBounds.south + (Math.random() * (spainBounds.north - spainBounds.south));
+        const randomLon = spainBounds.west + (Math.random() * (spainBounds.east - spainBounds.west));
         
         const pokemon: Pokemon = {
           id: randomId,
@@ -143,6 +152,26 @@ const PokemonMap: React.FC = () => {
 
   const findNearbyPlaces = async (lat: number, lon: number) => {
     try {
+      // Definimos los límites de España
+      const spainBounds = {
+        north: 43.8,
+        south: 36.0,
+        east: 3.3,
+        west: -9.3
+      };
+
+      // Verificar si la ubicación está dentro de España
+      const isInSpain = lat >= spainBounds.south && 
+                       lat <= spainBounds.north && 
+                       lon >= spainBounds.west && 
+                       lon <= spainBounds.east;
+
+      // Si no está en España, usar el centro de España
+      if (!isInSpain) {
+        lat = 40.4637; // Madrid
+        lon = -3.7492;
+      }
+
       // Buscar lugares cercanos usando Nominatim con diferentes categorías
       const categories = ['tourism', 'amenity', 'leisure', 'historic'];
       let allPlaces: any[] = [];
@@ -150,7 +179,10 @@ const PokemonMap: React.FC = () => {
       // Buscar en múltiples categorías para obtener más resultados
       for (const category of categories) {
         const response = await axios.get(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${category}&lat=${lat}&lon=${lon}&radius=10000`,
+          `https://nominatim.openstreetmap.org/search?` +
+          `format=json&q=${category}&` +
+          `viewbox=${spainBounds.west},${spainBounds.north},${spainBounds.east},${spainBounds.south}&` +
+          `bounded=1`, // Esto fuerza a que los resultados estén dentro del viewbox
           {
             headers: {
               'User-Agent': 'PokeGoMap/1.0'
@@ -159,112 +191,112 @@ const PokemonMap: React.FC = () => {
         );
         
         if (response.data && response.data.length > 0) {
-          allPlaces = [...allPlaces, ...response.data];
+          // Filtrar solo lugares dentro de España
+          const placesInSpain = response.data.filter((place: any) => {
+            const placeLat = parseFloat(place.lat);
+            const placeLon = parseFloat(place.lon);
+            return placeLat >= spainBounds.south && 
+                   placeLat <= spainBounds.north && 
+                   placeLon >= spainBounds.west && 
+                   placeLon <= spainBounds.east;
+          });
+          allPlaces = [...allPlaces, ...placesInSpain];
         }
       }
 
-      // Asegurarse de que hay resultados
+      // Limitar el número total de lugares para no sobrecargar el mapa
+      allPlaces = allPlaces.slice(0, 30); // Limitamos a 30 lugares en total
+
       if (allPlaces.length > 0) {
-        // Dividir los lugares en dos grupos: uno para Pokéstops y otro para gimnasios
+        // Dividir los lugares entre Pokéstops y gimnasios
         const halfLength = Math.ceil(allPlaces.length / 2);
         
         const pokestops = allPlaces
           .slice(0, halfLength)
           .map((place: any) => ({
             id: place.place_id.toString(),
-            name: place.display_name,
+            name: place.display_name.split(',')[0], // Solo tomamos la primera parte del nombre
             position: [parseFloat(place.lat), parseFloat(place.lon)] as [number, number],
             type: 'pokestop' as const
           }));
         
         const gyms = allPlaces
-          .slice(halfLength, halfLength * 2)
+          .slice(halfLength)
           .map((place: any) => ({
             id: place.place_id.toString(),
-            name: place.display_name,
+            name: place.display_name.split(',')[0],
             position: [parseFloat(place.lat), parseFloat(place.lon)] as [number, number],
             type: 'gym' as const
           }));
         
-        // Combinar los dos grupos
         const newPokeStops = [...pokestops, ...gyms];
-        
         setPokeStops(newPokeStops);
-        console.log('Pokéstops y gimnasios encontrados:', newPokeStops.length);
+        console.log('Pokéstops y gimnasios encontrados en España:', newPokeStops.length);
       } else {
-        // Si no hay resultados, crear algunos Pokéstops y gimnasios de ejemplo
-        createGlobalPokeStops();
+        createGlobalPokeStops(); // Usar el fallback si no se encuentran lugares
       }
     } catch (error) {
       console.error('Error al buscar lugares cercanos:', error);
-      // Crear Pokéstops y gimnasios de ejemplo en caso de error
       createGlobalPokeStops();
     }
   };
 
   // Función para crear Poképaradas y gimnasios en todo el mapa
   const createGlobalPokeStops = () => {
-    // Definir una cuadrícula global para cubrir todo el mapa
-    const gridSize = 5; // 5x5 cuadrícula (menos elementos pero más visibles)
     const examplePokeStops: PokeStop[] = [];
     
-    // Definir un área más amplia para cubrir todo el mapa
-    const minLat = 41.0; // Latitud mínima
-    const maxLat = 41.5; // Latitud máxima
-    const minLon = 1.8;  // Longitud mínima
-    const maxLon = 2.3;  // Longitud máxima
-    
-    // Calcular el espaciado basado en el área
-    const latSpacing = (maxLat - minLat) / gridSize;
-    const lonSpacing = (maxLon - minLon) / gridSize;
-    
-    for (let i = 0; i < gridSize; i++) {
-      for (let j = 0; j < gridSize; j++) {
-        const lat = minLat + i * latSpacing;
-        const lon = minLon + j * lonSpacing;
-        
-        // Alternar entre Poképaradas y gimnasios
-        const isGym = (i + j) % 2 === 0;
-        
+    // Definimos ciudades importantes de España con sus coordenadas
+    const spanishCities = [
+      { name: 'Madrid', lat: 40.4168, lon: -3.7038 },
+      { name: 'Barcelona', lat: 41.3851, lon: 2.1734 },
+      { name: 'Valencia', lat: 39.4699, lon: -0.3763 },
+      { name: 'Sevilla', lat: 37.3891, lon: -5.9845 },
+      { name: 'Bilbao', lat: 43.2630, lon: -2.9350 },
+      { name: 'Zaragoza', lat: 41.6488, lon: -0.8891 },
+      { name: 'Málaga', lat: 36.7212, lon: -4.4217 },
+      { name: 'Murcia', lat: 37.9922, lon: -1.1307 }
+    ];
+
+    // Crear Pokéstops y gimnasios en las ciudades
+    spanishCities.forEach((city, index) => {
+      // Crear un gimnasio en el centro de la ciudad
+      examplePokeStops.push({
+        id: `gym-${city.name}`,
+        name: `Gimnasio de ${city.name}`,
+        position: [city.lat, city.lon],
+        type: 'gym'
+      });
+
+      // Crear 2-3 Pokéstops alrededor de cada ciudad
+      for (let i = 0; i < 3; i++) {
+        const offset = (Math.random() - 0.5) * 0.05; // Pequeño offset aleatorio
         examplePokeStops.push({
-          id: `${i}-${j}`,
-          name: isGym ? `Gimnasio ${i}-${j}` : `Pokéstop ${i}-${j}`,
-          position: [lat, lon],
-          type: isGym ? 'gym' : 'pokestop'
+          id: `pokestop-${city.name}-${i}`,
+          name: `Pokéstop ${i + 1} de ${city.name}`,
+          position: [city.lat + offset, city.lon + offset],
+          type: 'pokestop'
         });
       }
-    }
-    
-    // Añadir algunos Poképaradas y gimnasios adicionales en puntos específicos
-    const additionalStops: PokeStop[] = [
-      {
-        id: 'extra-1',
-        name: 'Pokéstop Sagrada Familia',
-        position: [41.4036, 2.1744],
-        type: 'pokestop'
-      },
-      {
-        id: 'extra-2',
-        name: 'Gimnasio Park Güell',
-        position: [41.4145, 2.1527],
-        type: 'gym'
-      },
-      {
-        id: 'extra-3',
-        name: 'Pokéstop Camp Nou',
-        position: [41.3809, 2.1228],
-        type: 'pokestop'
-      },
-      {
-        id: 'extra-4',
-        name: 'Gimnasio Montjuïc',
-        position: [41.3636, 2.1687],
-        type: 'gym'
-      }
+    });
+
+    // Lugares emblemáticos adicionales
+    const landmarks = [
+      { name: 'Sagrada Familia', lat: 41.4036, lon: 2.1744, type: 'pokestop' },
+      { name: 'Alhambra', lat: 37.1760, lon: -3.5890, type: 'gym' },
+      { name: 'Plaza Mayor', lat: 40.4168, lon: -3.7038, type: 'pokestop' },
+      { name: 'La Giralda', lat: 37.3859, lon: -5.9934, type: 'gym' }
     ];
-    
-    setPokeStops([...examplePokeStops, ...additionalStops]);
-    console.log('Usando Pokéstops y gimnasios globales:', examplePokeStops.length + additionalStops.length);
+
+    landmarks.forEach(landmark => {
+      examplePokeStops.push({
+        id: `landmark-${landmark.name}`,
+        name: landmark.name,
+        position: [landmark.lat, landmark.lon],
+        type: landmark.type as 'pokestop' | 'gym'
+      });
+    });
+
+    setPokeStops(examplePokeStops);
   };
 
   const handleZoomEnd = (newZoom: number) => {
@@ -274,8 +306,8 @@ const PokemonMap: React.FC = () => {
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
       <MapContainer
-        center={position}
-        zoom={zoom}
+        center={[40.4637, -3.7492]} // Centro en Madrid
+        zoom={6} // Zoom para ver España completa
         style={{ height: '100%', width: '100%' }}
         zoomControl={true}
         maxZoom={18}
