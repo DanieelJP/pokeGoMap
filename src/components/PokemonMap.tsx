@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axios from 'axios';
 import './PokemonMap.css';
+import PokemonInfo from './PokemonInfo';
 
 // Arreglar el problema de los iconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -56,6 +57,9 @@ interface Pokemon {
   name: string;
   position: [number, number];
   sprite: string;
+  types?: string[];
+  height?: number;
+  weight?: number;
 }
 
 interface PokeStop {
@@ -71,6 +75,7 @@ const PokemonMap: React.FC = () => {
   const [pokeStops, setPokeStops] = useState<PokeStop[]>([]);
   const [zoom, setZoom] = useState<number>(13);
   const [currentLocationName, setCurrentLocationName] = useState<string>('');
+  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
   useEffect(() => {
     // Obtener la ubicación del usuario
@@ -136,11 +141,15 @@ const PokemonMap: React.FC = () => {
         const randomLat = spainBounds.south + (Math.random() * (spainBounds.north - spainBounds.south));
         const randomLon = spainBounds.west + (Math.random() * (spainBounds.east - spainBounds.west));
         
+        // Extraer toda la información relevante
         const pokemon: Pokemon = {
           id: randomId,
           name: response.data.name,
           position: [randomLat, randomLon],
-          sprite: response.data.sprites.front_default
+          sprite: response.data.sprites.front_default,
+          types: response.data.types.map((t: any) => t.type.name),
+          height: response.data.height,
+          weight: response.data.weight
         };
         newPokemons.push(pokemon);
       } catch (error) {
@@ -306,8 +315,8 @@ const PokemonMap: React.FC = () => {
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
       <MapContainer
-        center={[40.4637, -3.7492]} // Centro en Madrid
-        zoom={6} // Zoom para ver España completa
+        center={[40.4637, -3.7492]}
+        zoom={6}
         style={{ height: '100%', width: '100%' }}
         zoomControl={true}
         maxZoom={18}
@@ -340,7 +349,26 @@ const PokemonMap: React.FC = () => {
             <Popup>
               <div>
                 <img src={pokemon.sprite} alt={pokemon.name} style={{ width: '100px' }} />
-                <h3>{pokemon.name}</h3>
+                <h3>{pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}</h3>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Evitar que el evento se propague
+                    console.log("Botón ver info clickeado");
+                    setSelectedPokemon(pokemon);
+                  }}
+                  style={{
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    marginTop: '10px',
+                    width: '100%'
+                  }}
+                >
+                  Ver detalles
+                </button>
               </div>
             </Popup>
           </Marker>
@@ -350,6 +378,17 @@ const PokemonMap: React.FC = () => {
         <h3>Ubicación: {currentLocationName}</h3>
         <p>Poképaradas y gimnasios: {pokeStops.length}</p>
       </div>
+
+      {/* Mostrar información del Pokémon seleccionado */}
+      {selectedPokemon && (
+        <PokemonInfo 
+          pokemon={selectedPokemon} 
+          onClose={() => {
+            console.log("Cerrando PokemonInfo");
+            setSelectedPokemon(null);
+          }} 
+        />
+      )}
     </div>
   );
 };
