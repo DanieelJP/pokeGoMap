@@ -11,9 +11,10 @@ interface PokemonInfoProps {
     weight?: number;
   };
   onClose: () => void;
+  onCapture: () => void;
 }
 
-const PokemonInfo: React.FC<PokemonInfoProps> = ({ pokemon, onClose }) => {
+const PokemonInfo: React.FC<PokemonInfoProps> = ({ pokemon, onClose, onCapture }) => {
   console.log("Renderizando PokemonInfo para:", pokemon.name);
   
   return (
@@ -36,6 +37,13 @@ const PokemonInfo: React.FC<PokemonInfoProps> = ({ pokemon, onClose }) => {
         
         {pokemon.height && <p><strong>Altura:</strong> {pokemon.height / 10}m</p>}
         {pokemon.weight && <p><strong>Peso:</strong> {pokemon.weight / 10}kg</p>}
+        
+        <button 
+          onClick={onCapture}
+          className="capture-button"
+        >
+          Intentar capturar
+        </button>
       </div>
     </div>
   );
