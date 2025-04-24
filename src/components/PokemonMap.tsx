@@ -88,20 +88,20 @@ const PokemonMap: React.FC = () => {
           const userLon = pos.coords.longitude;
           setPosition([userLat, userLon]);
           generateRandomPokemons(userLat, userLon);
-          findNearbyPlaces(userLat, userLon);
+          findNearbyPlaces();
           getLocationName(userLat, userLon);
         },
         () => {
           console.log('Error al obtener la ubicación');
           generateRandomPokemons(position[0], position[1]);
-          findNearbyPlaces(position[0], position[1]);
+          findNearbyPlaces();
           getLocationName(position[0], position[1]);
         }
       );
     } else {
       console.log('Geolocalización no soportada por este navegador');
       generateRandomPokemons(position[0], position[1]);
-      findNearbyPlaces(position[0], position[1]);
+      findNearbyPlaces();
       getLocationName(position[0], position[1]);
     }
   }, []);
@@ -161,150 +161,238 @@ const PokemonMap: React.FC = () => {
     setPokemons(newPokemons);
   };
 
-  const findNearbyPlaces = async (lat: number, lon: number) => {
+  const findNearbyPlaces = async () => {
+    // Definir interfaz para los items de WikiData al inicio de la función
+    interface WikiDataItem {
+      id: string;
+      name: string;
+      position: [number, number];
+    }
+
     try {
-      // Definimos los límites de España
-      const spainBounds = {
-        north: 43.8,
-        south: 36.0,
-        east: 3.3,
-        west: -9.3
-      };
+      console.log("Consultando WikiData para obtener monumentos en España...");
       
-      // Verificar si la ubicación está dentro de España
-      const isInSpain = lat >= spainBounds.south && 
-                        lat <= spainBounds.north && 
-                        lon >= spainBounds.west && 
-                        lon <= spainBounds.east;
+      // Consulta SPARQL específica para monumentos en España
+      const sparqlQuery = `
+        SELECT ?item ?itemLabel ?coord WHERE {
+          ?item wdt:P31 wd:Q570116;  # Instancia de "monumento emblemático"
+                wdt:P17 wd:Q29;      # En España (wdt:P17 es "país", wd:Q29 es "España")
+                wdt:P625 ?coord.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+        }
+        LIMIT 10
+      `;
       
-      // Si no está en España, usar el centro de España
-      if (!isInSpain) {
-        lat = 40.4637; // Madrid
-        lon = -3.7492;
+      // URL-encode la consulta
+      const encodedQuery = encodeURIComponent(sparqlQuery);
+      
+      // Endpoint de WikiData para consultas SPARQL
+      const url = `https://query.wikidata.org/sparql?query=${encodedQuery}&format=json`;
+      
+      const response = await axios.get(url, {
+        headers: {
+          'Accept': 'application/sparql-results+json',
+          'User-Agent': 'PokeGoMap/1.0 (educational project)'
+        },
+        timeout: 8000
+      });
+      
+      if (response.data && 
+          response.data.results && 
+          response.data.results.bindings && 
+          response.data.results.bindings.length > 0) {
+        
+        console.log(`WikiData devolvió ${response.data.results.bindings.length} monumentos`);
+        
+        // Procesar los resultados
+        const monuments = response.data.results.bindings.map((item: any) => {
+          // Extraer coordenadas del formato 'Point(lon lat)'
+          const coordValue = item.coord.value;
+          const match = coordValue.match(/Point\(([^ ]+) ([^ ]+)\)/);
+          
+          if (match) {
+            const lon = parseFloat(match[1]);
+            const lat = parseFloat(match[2]);
+            
+            return {
+              id: item.item.value.split('/').pop(),
+              name: item.itemLabel.value,
+              position: [lat, lon] as [number, number]
+            };
+          }
+          return null;
+        }).filter((item: WikiDataItem | null) => item !== null) as WikiDataItem[];
+        
+        // Si tenemos al menos 6 monumentos
+        if (monuments.length >= 6) {
+          // Mezclar para obtener diferentes cada vez
+          const shuffled = [...monuments].sort(() => 0.5 - Math.random());
+          
+          // Limitar a 6 monumentos en lugar de 4
+          const selectedMonuments = shuffled.slice(0, 6);
+          
+          // Dividir: los primeros 3 son pokeparadas, los otros 3 son gimnasios
+          const processedLocations = [
+            ...selectedMonuments.slice(0, 3).map(monument => ({
+              ...monument,
+              type: 'pokestop' as const
+            })),
+            ...selectedMonuments.slice(3, 6).map(monument => ({
+              ...monument,
+              type: 'gym' as const
+            }))
+          ];
+          
+          console.log(`Generados 3 pokestops y 3 gimnasios de WikiData`);
+          
+          setPokeStops(processedLocations);
+          return;
+        }
       }
       
-      console.log("Intentando obtener lugares de la API...");
+      // Si no hay suficientes resultados, probar con otra consulta
+      // Esta consulta alternativa busca lugares destacados en España
+      const altSparqlQuery = `
+        SELECT ?item ?itemLabel ?coord WHERE {
+          ?item wdt:P31/wdt:P279* wd:Q839954;  # Instancia o subclase de "estructura arquitectónica"
+                wdt:P17 wd:Q29;                # En España
+                wdt:P625 ?coord.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+        }
+        LIMIT 10
+      `;
       
-      // Variable para controlar si usamos datos de la API
-      let usingApiData = false;
-      let apiLocations: PokeStop[] = [];
+      const altEncodedQuery = encodeURIComponent(altSparqlQuery);
+      const altUrl = `https://query.wikidata.org/sparql?query=${altEncodedQuery}&format=json`;
       
+      const altResponse = await axios.get(altUrl, {
+        headers: {
+          'Accept': 'application/sparql-results+json',
+          'User-Agent': 'PokeGoMap/1.0 (educational project)'
+        },
+        timeout: 8000
+      });
+      
+      if (altResponse.data && 
+          altResponse.data.results && 
+          altResponse.data.results.bindings && 
+          altResponse.data.results.bindings.length > 0) {
+        
+        console.log(`Consulta alternativa devolvió ${altResponse.data.results.bindings.length} lugares`);
+        
+        // Procesar los resultados igual que antes
+        const places = altResponse.data.results.bindings.map((item: any) => {
+          const coordValue = item.coord.value;
+          const match = coordValue.match(/Point\(([^ ]+) ([^ ]+)\)/);
+          
+          if (match) {
+            const lon = parseFloat(match[1]);
+            const lat = parseFloat(match[2]);
+            
+            return {
+              id: item.item.value.split('/').pop(),
+              name: item.itemLabel.value,
+              position: [lat, lon] as [number, number]
+            };
+          }
+          return null;
+        }).filter((item: WikiDataItem | null) => item !== null) as WikiDataItem[];
+        
+        if (places.length >= 6) {
+          const shuffled = [...places].sort(() => 0.5 - Math.random());
+          const selectedPlaces = shuffled.slice(0, 6);
+          
+          const processedLocations = [
+            ...selectedPlaces.slice(0, 3).map(place => ({
+              ...place,
+              type: 'pokestop' as const
+            })),
+            ...selectedPlaces.slice(3, 6).map(place => ({
+              ...place,
+              type: 'gym' as const
+            }))
+          ];
+          
+          console.log(`Generados 3 pokestops y 3 gimnasios de la consulta alternativa`);
+          
+          setPokeStops(processedLocations);
+          return;
+        }
+      }
+      
+      throw new Error("No se pudieron obtener suficientes lugares de WikiData");
+      
+    } catch (error) {
+      console.error("Error al consultar WikiData:", error);
+      
+      // En caso de error, intentar una última consulta muy simple
       try {
-        // Intentar obtener exactamente 4 resultados de la API
-        const response = await axios.get('https://nominatim.openstreetmap.org/search?format=json&q=madrid+españa&limit=4', {
+        const simpleQuery = `
+          SELECT ?item ?itemLabel ?coord WHERE {
+            ?item wdt:P17 wd:Q29;      # En España
+                  wdt:P625 ?coord.
+            SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
+          }
+          LIMIT 8
+        `;
+        
+        const simpleEncodedQuery = encodeURIComponent(simpleQuery);
+        const simpleUrl = `https://query.wikidata.org/sparql?query=${simpleEncodedQuery}&format=json`;
+        
+        const simpleResponse = await axios.get(simpleUrl, {
           headers: {
-            'User-Agent': 'PokeGoMap/1.0 (test application)'
+            'Accept': 'application/sparql-results+json',
+            'User-Agent': 'PokeGoMap/1.0 (educational project)'
           },
           timeout: 5000
         });
         
-        if (response.data && response.data.length === 4) {
-          console.log(`API devolvió ${response.data.length} resultados`);
-          usingApiData = true;
-          
-          // Dividir exactamente: 2 pokestops y 2 gimnasios
-          const pokestops = response.data
-            .slice(0, 2)
-            .map((place: any) => ({
-              id: place.place_id ? place.place_id.toString() : `place-${Math.random()}`,
-              name: place.display_name ? place.display_name.split(',')[0] : "Pokéstop",
-              position: [parseFloat(place.lat), parseFloat(place.lon)] as [number, number],
-              type: 'pokestop' as const
-            }));
-          
-          const gyms = response.data
-            .slice(2, 4)
-            .map((place: any) => ({
-              id: place.place_id ? place.place_id.toString() : `gym-${Math.random()}`,
-              name: place.display_name ? place.display_name.split(',')[0] : "Gimnasio",
-              position: [parseFloat(place.lat), parseFloat(place.lon)] as [number, number],
-              type: 'gym' as const
-            }));
-          
-          apiLocations = [...pokestops, ...gyms];
+        interface BasicPlace {
+          id: string;
+          name: string;
+          position: [number, number];
         }
-      } catch (apiError) {
-        console.error("Error al consultar la API, usando datos estáticos:", apiError);
-        usingApiData = false;
-      }
-      
-      // Si tenemos exactamente 4 ubicaciones de la API, usarlas
-      if (usingApiData && apiLocations.length === 4) {
-        console.log(`Usando ${apiLocations.length} ubicaciones de la API: 2 pokestops y 2 gimnasios`);
-        setPokeStops(apiLocations);
-        return;
-      }
-      
-      // Si no, usar datos estáticos simplificados (2 pokestops y 2 gimnasios)
-      console.log("Usando datos estáticos para pokeparadas y gimnasios");
-      
-      // Crear datos de pokeparadas y gimnasios fijos en España - versión simplificada
-      const staticLocations: PokeStop[] = [
-        // 2 Gimnasios principales
-        {
-          id: 'gym-madrid',
-          name: 'Gimnasio de Madrid',
-          position: [40.4168, -3.7038],
-          type: 'gym'
-        },
-        {
-          id: 'gym-barcelona',
-          name: 'Gimnasio de Barcelona',
-          position: [41.3851, 2.1734],
-          type: 'gym'
-        },
         
-        // 2 Pokéstops principales
-        {
-          id: 'pokestop-madrid-1',
-          name: 'Plaza Mayor',
-          position: [40.4154, -3.7071],
-          type: 'pokestop'
-        },
-        {
-          id: 'pokestop-barcelona-1',
-          name: 'Sagrada Familia',
-          position: [41.4036, 2.1744],
-          type: 'pokestop'
+        if (simpleResponse.data?.results?.bindings?.length > 0) {
+          const basicPlaces = simpleResponse.data.results.bindings
+            .map((item: any) => {
+              const coordValue = item.coord.value;
+              const match = coordValue.match(/Point\(([^ ]+) ([^ ]+)\)/);
+              
+              if (match) {
+                return {
+                  id: item.item.value.split('/').pop(),
+                  name: item.itemLabel.value,
+                  position: [parseFloat(match[2]), parseFloat(match[1])] as [number, number]
+                };
+              }
+              return null;
+            })
+            .filter((item: BasicPlace | null) => item !== null)
+            .slice(0, 6) as BasicPlace[];
+          
+          if (basicPlaces.length >= 6) {
+            const finalLocations = [
+              ...basicPlaces.slice(0, 3).map(place => ({
+                ...place,
+                type: 'pokestop' as const
+              })),
+              ...basicPlaces.slice(3, 6).map(place => ({
+                ...place,
+                type: 'gym' as const
+              }))
+            ];
+            
+            setPokeStops(finalLocations);
+            return;
+          }
         }
-      ];
+      } catch (fallbackError) {
+        console.error("Error en consulta de emergencia:", fallbackError);
+      }
       
-      setPokeStops(staticLocations);
-      console.log(`Generados 2 pokéstops y 2 gimnasios estáticos`);
-      
-    } catch (error: any) {
-      console.error('Error general:', error);
-      
-      // En caso de cualquier error, también usar datos estáticos simplificados
-      const emergencyLocations: PokeStop[] = [
-        {
-          id: 'emergency-gym-1',
-          name: 'Gimnasio de Emergencia 1',
-          position: [40.4168, -3.7038], // Madrid
-          type: 'gym'
-        },
-        {
-          id: 'emergency-gym-2',
-          name: 'Gimnasio de Emergencia 2',
-          position: [41.3851, 2.1734], // Barcelona
-          type: 'gym'
-        },
-        {
-          id: 'emergency-pokestop-1',
-          name: 'Pokéstop de emergencia 1',
-          position: [40.4154, -3.7071],
-          type: 'pokestop'
-        },
-        {
-          id: 'emergency-pokestop-2',
-          name: 'Pokéstop de emergencia 2',
-          position: [41.4036, 2.1744],
-          type: 'pokestop'
-        }
-      ];
-      
-      setPokeStops(emergencyLocations);
-      console.log("Usando ubicaciones de emergencia debido a un error grave");
+      setPokeStops([]);
+      console.log("No se pudieron obtener lugares de WikiData. El mapa funcionará sin pokeparadas ni gimnasios.");
     }
   };
 
@@ -387,14 +475,14 @@ const PokemonMap: React.FC = () => {
     // Verificar si hay pokeparadas, y si no, crearlas
     if (pokeStops.length === 0) {
       console.log("No se encontraron pokeparadas, generando globales...");
-      findNearbyPlaces(position[0], position[1]);
+      findNearbyPlaces();
     }
   }, [pokeStops, position]);
 
   // Añade una función para recargar manualmente
   const reloadPokestopsAndGyms = () => {
     console.log("Recargando pokeparadas y gimnasios...");
-    findNearbyPlaces(position[0], position[1]);
+    findNearbyPlaces();
   };
 
   return (
