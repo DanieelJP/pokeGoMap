@@ -109,6 +109,7 @@
 .opponent, .player {
   height: 120px;
   position: relative;
+  margin-bottom: 5px;
 }
 
 .opponent {
@@ -120,13 +121,21 @@
 }
 
 .pokemon-sprite {
-  height: 100px;
-  width: 100px;
+  height: 110px;
+  width: 110px;
   object-fit: contain;
 }
 
 .pokemon-sprite.back {
   transform: scaleX(-1);
+}
+
+.player .pokemon-sprite {
+  margin-top: 5px;
+}
+
+.opponent .pokemon-sprite {
+  margin-bottom: 5px;
 }
 
 .health-bar {
@@ -145,7 +154,8 @@
 }
 
 .battle-controls {
-  margin: 15px 0;
+  clear: both;
+  margin-bottom: 15px;
 }
 
 .attack-button {
@@ -168,6 +178,12 @@
   cursor: not-allowed;
 }
 
+.battle-log-container {
+  position: relative;
+  z-index: 10;
+  margin-top: 15px;
+}
+
 .battle-log {
   background-color: white;
   border: 1px solid #ddd;
@@ -177,11 +193,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: visible;
 }
 
 .battle-log p {
   margin: 0;
   font-style: italic;
+  z-index: 5;
+  position: relative;
 }
 
 .gym-completed {
@@ -204,4 +224,68 @@
 .challenge-again {
   color: #27ae60;
   font-weight: bold;
+}
+
+.close-gym-button {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  color: #666;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.close-gym-button:hover {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.battle-participants {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0;
+  padding: 5px;
+  background-color: #f8f8f8;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.opponent-name, .player-name {
+  padding: 3px 8px;
+  background-color: #616161;
+  color: white;
+  border-radius: 4px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vs {
+  font-weight: bold;
+  color: #e74c3c;
+}
+
+.opponent-name.simple,
+.player-name.simple {
+  background-color: transparent;
+  color: #333;
+  padding: 3px 8px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: normal;
 } 

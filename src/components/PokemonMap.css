@@ -361,4 +361,19 @@ button:hover {
   color: #7f8c8d;
   text-align: center;
   font-style: italic;
+}
+
+.reset-gym-button {
+  margin-top: 10px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.reset-gym-button:hover {
+  background-color: #c0392b;
 } 

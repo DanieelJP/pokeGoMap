@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import { Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import './Gym.css';
@@ -40,6 +40,11 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
   const [cooldown, setCooldown] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [badge, setBadge] = useState<string | null>(null);
+
+  // Añadir referencias para controlar el Popup
+  const popupRef = useRef<L.Popup | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+  const map = useMap();
 
   // Cargar el estado del gimnasio desde localStorage
   useEffect(() => {
@@ -90,9 +95,21 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
     }
   };
 
-  // Iniciar batalla con el Pokémon seleccionado
+  // Función para mantener el Popup abierto
+  const keepPopupOpen = () => {
+    if (markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  };
+
+  // Modificar la función startBattle para mantener el popup abierto
   const startBattle = (pokemon: any) => {
     if (!gymLeader || cooldown || completed) return;
+    
+    // Evitar que el evento se propague y cierre el popup
+    setTimeout(() => {
+      keepPopupOpen();
+    }, 10);
     
     setSelectedPokemon({
       ...pokemon,
@@ -107,6 +124,11 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
   // Atacar al líder del gimnasio
   const attackGymLeader = () => {
     if (!gymLeader || !selectedPokemon || !playerTurn) return;
+    
+    // Evitar que el evento se propague y cierre el popup
+    setTimeout(() => {
+      keepPopupOpen();
+    }, 10);
     
     // Daño aleatorio entre 10 y 25
     const damage = Math.floor(Math.random() * 16) + 10;
@@ -210,13 +232,34 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
     generateGymLeader();
   }, []);
 
+  // Añadir una función de limpieza que se ejecute cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      // Limpiar el estado del gimnasio cuando el componente se desmonta
+      localStorage.removeItem(`gym_${id}`);
+    };
+  }, [id]);
+
   return (
     <Marker
       position={position}
       icon={gymIcon}
+      eventHandlers={{
+        popupopen: (e) => {
+          popupRef.current = e.popup;
+          markerRef.current = e.target;
+        }
+      }}
+      ref={markerRef}
     >
-      <Popup className="gym-popup">
-        <div className="gym-container">
+      <Popup 
+        className="gym-popup"
+        closeButton={false}
+        autoClose={false}
+        closeOnClick={false}
+      >
+        <div className="gym-container" onClick={(e) => e.stopPropagation()}>
+          <button onClick={() => popupRef.current?.close()} className="close-gym-button">×</button>
           <h3>{name}</h3>
           <p className="gym-title">Gimnasio Pokémon</p>
           
@@ -280,10 +323,6 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
               <div className="opponent">
                 {gymLeader && (
                   <>
-                    <div className="pokemon-info">
-                      <p className="pokemon-name">{gymLeader.name.toUpperCase()}</p>
-                      <p className="pokemon-level">Nv. {gymLeader.level}</p>
-                    </div>
                     <div className="health-bar">
                       <div 
                         className="health-fill"
@@ -305,11 +344,23 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
                         style={{ width: `${(selectedPokemon.hp / selectedPokemon.maxHp) * 100}%` }}
                       ></div>
                     </div>
-                    <div className="pokemon-info">
-                      <p className="pokemon-name">{selectedPokemon.name.toUpperCase()}</p>
-                    </div>
                   </>
                 )}
+              </div>
+              
+              {/* Asegurarnos de que haya espacio suficiente entre los elementos */}
+              <div style={{ height: '10px' }}></div>
+              
+              <div className="battle-participants">
+                <div className="opponent-name simple">
+                  {gymLeader && (
+                    <span>{gymLeader.name.toUpperCase()}</span>
+                  )}
+                </div>
+                <span className="vs">VS</span>
+                <div className="player-name simple">
+                  {selectedPokemon && <span>{selectedPokemon.name.toUpperCase()}</span>}
+                </div>
               </div>
               
               <div className="battle-controls">
@@ -322,8 +373,13 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
                 </button>
               </div>
               
-              <div className="battle-log">
-                <p>{battleLog[battleLog.length - 1]}</p>
+              {/* Añadir un espacio extra para evitar que el triángulo o cualquier otro elemento se superponga */}
+              <div style={{ height: '10px' }}></div>
+              
+              <div className="battle-log-container">
+                <div className="battle-log">
+                  <p>{battleLog[battleLog.length - 1]}</p>
+                </div>
               </div>
             </div>
           )}

@@ -496,6 +496,17 @@ const PokemonMap: React.FC = () => {
   // Añade una función para recargar manualmente
   const reloadPokestopsAndGyms = () => {
     console.log("Recargando pokeparadas y gimnasios...");
+    
+    // Limpiar datos de gimnasios antes de recargar
+    pokeStops.forEach(stop => {
+      if (stop.type === 'gym') {
+        localStorage.removeItem(`gym_${stop.id}`);
+      }
+    });
+    
+    // También podemos reiniciar las medallas si queremos
+    // setBadges([]);
+    
     findNearbyPlaces();
   };
 
@@ -575,6 +586,28 @@ const PokemonMap: React.FC = () => {
       setPlayerLevel(newLevel);
       alert(`¡Has subido al nivel ${newLevel}!`);
     }
+  };
+
+  // Añadir una función para reiniciar el progreso
+  const resetGymProgress = () => {
+    // Limpiar todos los datos de gimnasios
+    pokeStops.forEach(stop => {
+      if (stop.type === 'gym') {
+        localStorage.removeItem(`gym_${stop.id}`);
+      }
+    });
+    
+    // Reiniciar medallas
+    setBadges([]);
+    
+    // Guardar en localStorage
+    localStorage.setItem('playerData', JSON.stringify({
+      level: playerLevel,
+      xp: playerXp,
+      badges: []
+    }));
+    
+    alert("Progreso de gimnasios reiniciado");
   };
 
   return (
@@ -748,6 +781,12 @@ const PokemonMap: React.FC = () => {
             <p className="no-badges">Sin medallas</p>
           )}
         </div>
+        <button 
+          onClick={resetGymProgress} 
+          className="reset-gym-button"
+        >
+          Reiniciar Gimnasios
+        </button>
       </div>
     </div>
   );
