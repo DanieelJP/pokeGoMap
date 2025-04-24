@@ -6,6 +6,7 @@ import axios from 'axios';
 import './PokemonMap.css';
 import PokemonInfo from './PokemonInfo';
 import PokeStop from './PokeStop';
+import Gym from './Gym';
 
 // Arreglar el problema de los iconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -88,6 +89,9 @@ const PokemonMap: React.FC = () => {
     'Super Poción': 0,
     'Revivir': 0
   });
+  const [playerLevel, setPlayerLevel] = useState(1);
+  const [playerXp, setPlayerXp] = useState(0);
+  const [badges, setBadges] = useState<string[]>([]);
 
   useEffect(() => {
     // Obtener la ubicación del usuario
@@ -538,6 +542,41 @@ const PokemonMap: React.FC = () => {
     setShowCollection(false); // Cerrar colección si está abierta
   };
 
+  useEffect(() => {
+    const savedPlayerData = localStorage.getItem('playerData');
+    if (savedPlayerData) {
+      const data = JSON.parse(savedPlayerData);
+      setPlayerLevel(data.level || 1);
+      setPlayerXp(data.xp || 0);
+      setBadges(data.badges || []);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('playerData', JSON.stringify({
+      level: playerLevel,
+      xp: playerXp,
+      badges: badges
+    }));
+  }, [playerLevel, playerXp, badges]);
+
+  const handleGymBattleWon = (badge: string, xp: number) => {
+    if (!badges.includes(badge)) {
+      setBadges([...badges, badge]);
+    }
+    
+    // Añadir XP y subir nivel si es necesario
+    const newXp = playerXp + xp;
+    setPlayerXp(newXp);
+    
+    // Aumentar nivel cada 1000 XP
+    const newLevel = Math.floor(newXp / 1000) + 1;
+    if (newLevel > playerLevel) {
+      setPlayerLevel(newLevel);
+      alert(`¡Has subido al nivel ${newLevel}!`);
+    }
+  };
+
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
       <div className="app-title">
@@ -556,16 +595,27 @@ const PokemonMap: React.FC = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
-        {pokeStops.map((stop) => (
-          <PokeStop
-            key={stop.id}
-            id={stop.id}
-            name={stop.name}
-            position={stop.position}
-            type={stop.type}
-            onItemsReceived={handleItemsReceived}
-          />
-        ))}
+        {pokeStops.map((stop) => 
+          stop.type === 'pokestop' ? (
+            <PokeStop
+              key={stop.id}
+              id={stop.id}
+              name={stop.name}
+              position={stop.position}
+              type={stop.type}
+              onItemsReceived={handleItemsReceived}
+            />
+          ) : (
+            <Gym
+              key={stop.id}
+              id={stop.id}
+              name={stop.name}
+              position={stop.position}
+              onBattleWon={handleGymBattleWon}
+              capturedPokemons={capturedPokemons}
+            />
+          )
+        )}
         {pokemons.map((pokemon) => (
           <Marker 
             key={pokemon.id} 
@@ -673,6 +723,32 @@ const PokemonMap: React.FC = () => {
           </div>
         </div>
       )}
+
+      <div className="player-info-panel">
+        <div className="player-level">
+          <span className="level-number">{playerLevel}</span>
+          <div className="xp-bar">
+            <div 
+              className="xp-fill"
+              style={{ width: `${(playerXp % 1000) / 10}%` }}
+            ></div>
+          </div>
+          <span className="xp-text">{playerXp % 1000}/1000 XP</span>
+        </div>
+        <div className="player-badges">
+          {badges.length > 0 ? (
+            <div className="badges-container">
+              {badges.map((badge, index) => (
+                <div key={index} className="badge-item" title={badge}>
+                  <span className="badge-icon">🏅</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-badges">Sin medallas</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
