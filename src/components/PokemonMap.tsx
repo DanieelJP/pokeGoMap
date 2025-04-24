@@ -5,6 +5,7 @@ import L from 'leaflet';
 import axios from 'axios';
 import './PokemonMap.css';
 import PokemonInfo from './PokemonInfo';
+import PokeStop from './PokeStop';
 
 // Arreglar el problema de los iconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -78,6 +79,15 @@ const PokemonMap: React.FC = () => {
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [capturedPokemons, setCapturedPokemons] = useState<Pokemon[]>([]);
   const [showCollection, setShowCollection] = useState(false);
+  const [showInventory, setShowInventory] = useState(false);
+  const [inventory, setInventory] = useState<{[key: string]: number}>({
+    'Poké Ball': 0,
+    'Super Ball': 0,
+    'Ultra Ball': 0,
+    'Poción': 0,
+    'Super Poción': 0,
+    'Revivir': 0
+  });
 
   useEffect(() => {
     // Obtener la ubicación del usuario
@@ -485,8 +495,54 @@ const PokemonMap: React.FC = () => {
     findNearbyPlaces();
   };
 
+  const handleItemsReceived = (items: string[]) => {
+    const newInventory = {...inventory};
+    items.forEach(item => {
+      if (newInventory[item]) {
+        newInventory[item] += 1;
+      } else {
+        newInventory[item] = 1;
+      }
+    });
+    setInventory(newInventory);
+    
+    // Guardar en localStorage
+    localStorage.setItem('inventory', JSON.stringify(newInventory));
+    
+    // Mostrar mensaje
+    alert(`¡Has recibido ${items.length} objetos!\n${items.join(', ')}`);
+  };
+
+  useEffect(() => {
+    // Reiniciar inventario a cero al iniciar la aplicación
+    setInventory({
+      'Poké Ball': 0,
+      'Super Ball': 0,
+      'Ultra Ball': 0,
+      'Poción': 0,
+      'Super Poción': 0,
+      'Revivir': 0
+    });
+    
+    // Opcional: Limpiar el localStorage
+    localStorage.removeItem('inventory');
+  }, []);
+
+  const toggleCollection = () => {
+    setShowCollection(true);
+    setShowInventory(false); // Cerrar inventario si está abierto
+  };
+
+  const toggleInventory = () => {
+    setShowInventory(true);
+    setShowCollection(false); // Cerrar colección si está abierta
+  };
+
   return (
     <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
+      <div className="app-title">
+        <h1>PokeGoMap</h1>
+      </div>
       <MapContainer
         center={[40.4637, -3.7492]}
         zoom={6}
@@ -501,18 +557,14 @@ const PokemonMap: React.FC = () => {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
         {pokeStops.map((stop) => (
-          <Marker 
-            key={stop.id} 
+          <PokeStop
+            key={stop.id}
+            id={stop.id}
+            name={stop.name}
             position={stop.position}
-            icon={stop.type === 'pokestop' ? pokestopIcon : gymIcon}
-          >
-            <Popup>
-              <div>
-                <h3>{stop.name}</h3>
-                <p>{stop.type === 'pokestop' ? 'Pokéstop' : 'Gimnasio'}</p>
-              </div>
-            </Popup>
-          </Marker>
+            type={stop.type}
+            onItemsReceived={handleItemsReceived}
+          />
         ))}
         {pokemons.map((pokemon) => (
           <Marker 
@@ -560,22 +612,21 @@ const PokemonMap: React.FC = () => {
         </button>
       </div>
 
-      <div className="capture-counter">
-        <span>Pokémon capturados: {capturedPokemons.length}</span>
-        <button 
-          onClick={() => setShowCollection(!showCollection)}
-          style={{
-            backgroundColor: '#ff9800',
-            color: 'white',
-            padding: '8px 16px',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginLeft: '10px'
-          }}
-        >
-          {showCollection ? 'Ocultar colección' : 'Ver colección'}
-        </button>
+      <div className="top-controls">
+        <div className="tabs-container">
+          <button 
+            onClick={toggleCollection}
+            className={`tab-button ${showCollection ? 'active-tab' : ''}`}
+          >
+            Colección ({capturedPokemons.length})
+          </button>
+          <button 
+            onClick={toggleInventory}
+            className={`tab-button ${showInventory ? 'active-tab' : ''}`}
+          >
+            Inventario
+          </button>
+        </div>
       </div>
 
       {/* Panel de colección de Pokémon */}
@@ -607,6 +658,20 @@ const PokemonMap: React.FC = () => {
           }}
           onCapture={() => attemptCapture(selectedPokemon)}
         />
+      )}
+
+      {showInventory && (
+        <div className="inventory-panel">
+          <h3>Mi Inventario</h3>
+          <div className="inventory-items">
+            {Object.entries(inventory).map(([item, quantity]) => (
+              <div key={item} className="inventory-item">
+                <span className="item-name">{item}:</span>
+                <span className="item-quantity">{quantity}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

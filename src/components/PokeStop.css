@@ -1,0 +1,54 @@
+.pokestop-popup {
+  padding: 5px;
+  text-align: center;
+}
+
+.pokestop-popup h3 {
+  margin-top: 0;
+  margin-bottom: 5px;
+}
+
+.spin-button {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+}
+
+.spin-button:hover {
+  background-color: #0b7dda;
+}
+
+.spin-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.spun-message {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.rewards-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.rewards-list li {
+  background-color: #f1f1f1;
+  padding: 5px;
+  margin: 5px 0;
+  border-radius: 3px;
+}
+
+.cooldown {
+  color: #f44336;
+  font-size: 0.9em;
+  margin-top: 10px;
+} 
