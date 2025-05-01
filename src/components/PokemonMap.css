@@ -19,10 +19,26 @@
 }
 
 .location-info {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  background-color: white;
+  padding: 10px 15px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 1000;
+  max-width: 300px;
   font-size: 12px;
-  color: #666;
-  margin-top: 5px;
-  font-style: italic;
+}
+
+.location-info h3 {
+  margin-top: 0;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.location-info p {
+  margin: 3px 0;
 }
 
 button {
@@ -39,6 +55,14 @@ button {
 
 button:hover {
   background-color: #45a049;
+}
+
+.reload-button {
+  background-color: #2196F3;
+}
+
+.reload-button:hover {
+  background-color: #0b7dda;
 }
 
 .pokestop-button {
@@ -109,4 +133,247 @@ button:hover {
   margin: 0;
   color: #333;
   font-weight: bold;
+}
+
+.top-controls {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+}
+
+.tabs-container {
+  display: flex;
+  background-color: white;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.tab-button {
+  background-color: white;
+  color: #333;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+  margin: 0;
+  transition: background-color 0.3s;
+}
+
+.tab-button:hover {
+  background-color: #f5f5f5;
+}
+
+.active-tab {
+  background-color: #ff9800 !important;
+  color: white;
+}
+
+.inventory-panel, .captured-collection {
+  position: fixed;
+  right: 20px;
+  top: 80px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  width: 300px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  z-index: 1000;
+}
+
+.inventory-panel h3, .captured-collection h3 {
+  margin-top: 0;
+  text-align: center;
+  color: #333;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 8px;
+}
+
+.inventory-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.inventory-item {
+  display: flex;
+  justify-content: space-between;
+  background-color: #f1f1f1;
+  padding: 5px 10px;
+  border-radius: 4px;
+}
+
+.item-name {
+  font-weight: bold;
+}
+
+.item-quantity {
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 50%;
+  min-width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.pokemon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.captured-pokemon-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f5f5f5;
+  transition: transform 0.2s;
+}
+
+.captured-pokemon-card:hover {
+  transform: scale(1.05);
+  background-color: #e0e0e0;
+}
+
+.captured-pokemon-card img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+.captured-pokemon-card p {
+  margin: 5px 0 0;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Añade estos estilos para el título de la aplicación */
+.app-title {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 10px 25px;
+  border-radius: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  text-align: center;
+}
+
+.app-title h1 {
+  margin: 0;
+  color: #ee5253;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Añadir estos estilos al final del archivo */
+.player-info-panel {
+  position: fixed;
+  top: 80px;
+  left: 20px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  width: 200px;
+}
+
+.player-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.level-number {
+  background-color: #3498db;
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.xp-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #ecf0f1;
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.xp-fill {
+  height: 100%;
+  background-color: #2ecc71;
+  transition: width 0.5s;
+}
+
+.xp-text {
+  font-size: 12px;
+  color: #7f8c8d;
+}
+
+.player-badges {
+  border-top: 1px solid #ecf0f1;
+  padding-top: 10px;
+}
+
+.badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.badge-item {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f39c12;
+  border-radius: 50%;
+  cursor: help;
+}
+
+.badge-icon {
+  font-size: 18px;
+}
+
+.no-badges {
+  font-size: 12px;
+  color: #7f8c8d;
+  text-align: center;
+  font-style: italic;
+}
+
+.reset-gym-button {
+  margin-top: 10px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.reset-gym-button:hover {
+  background-color: #c0392b;
 } 

@@ -3,12 +3,13 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: white;
-  padding: 20px;
+  background-color: white;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
-  z-index: 1000;
-  min-width: 300px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  z-index: 2000;
+  width: 300px;
+  max-width: 90%;
 }
 
 .close-button {
@@ -23,7 +24,10 @@
 }
 
 .pokemon-content {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
 }
 
 .pokemon-sprite {
@@ -35,7 +39,6 @@
 .pokemon-types {
   display: flex;
   gap: 10px;
-  justify-content: center;
   margin: 10px 0;
 }
 
