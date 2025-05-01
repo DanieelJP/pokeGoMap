@@ -2,29 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import './PokeStop.css';
+import './common.css';
+import { pokestopIcon, spunPokestopIcon } from './icons';
+import { saveToLocalStorage, getFromLocalStorage } from '../utils/storage';
+import { PokeStop as PokeStopType } from './types';
 
 // Iconos para pokestop normal y girado
-const pokestopIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  shadowAnchor: [12, 41],
-  className: ''
-});
-
-const spunPokestopIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  shadowAnchor: [12, 41]
-});
-
 const gymIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -52,9 +35,9 @@ const PokeStop: React.FC<PokeStopProps> = ({ id, name, position, type, onItemsRe
 
   useEffect(() => {
     // Cargar el estado anterior del pokestop si existe
-    const savedState = localStorage.getItem(`pokestop_${id}`);
+    const savedState = getFromLocalStorage(`pokestop_${id}`, null);
     if (savedState) {
-      const { isSpun, lastSpinTime, rewards } = JSON.parse(savedState);
+      const { isSpun, lastSpinTime, rewards } = savedState;
       setIsSpun(isSpun);
       setLastSpinTime(lastSpinTime);
       setRewards(rewards);
@@ -73,11 +56,11 @@ const PokeStop: React.FC<PokeStopProps> = ({ id, name, position, type, onItemsRe
             setIsSpun(false);
             setLastSpinTime(null);
             setRewards([]);
-            localStorage.setItem(`pokestop_${id}`, JSON.stringify({
+            saveToLocalStorage(`pokestop_${id}`, {
               isSpun: false,
               lastSpinTime: null,
               rewards: []
-            }));
+            });
           }, remainingTime);
           
           return () => clearTimeout(timerId);
@@ -108,11 +91,11 @@ const PokeStop: React.FC<PokeStopProps> = ({ id, name, position, type, onItemsRe
         setLastSpinTime(currentTime);
         
         // Guardar estado en localStorage
-        localStorage.setItem(`pokestop_${id}`, JSON.stringify({
+        saveToLocalStorage(`pokestop_${id}`, {
           isSpun,
           lastSpinTime: currentTime,
           rewards: randomRewards
-        }));
+        });
         
         // Notificar al componente padre sobre los items recibidos
         if (onItemsReceived) {
@@ -124,11 +107,11 @@ const PokeStop: React.FC<PokeStopProps> = ({ id, name, position, type, onItemsRe
           setIsSpun(false);
           setLastSpinTime(null);
           setRewards([]);
-          localStorage.setItem(`pokestop_${id}`, JSON.stringify({
+          saveToLocalStorage(`pokestop_${id}`, {
             isSpun: false,
             lastSpinTime: null,
             rewards: []
-          }));
+          });
         }, cooldownTime);
       }, 1000); // Duración de la animación de giro
     }

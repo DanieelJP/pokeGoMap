@@ -4,9 +4,12 @@ import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import axios from 'axios';
 import './PokemonMap.css';
+import './common.css';
 import PokemonInfo from './PokemonInfo';
 import PokeStop from './PokeStop';
 import Gym from './Gym';
+import { Pokemon, PokeStop as PokeStopType } from './types';
+import { saveToLocalStorage, getFromLocalStorage } from '../utils/storage';
 
 // Arreglar el problema de los iconos de Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -14,27 +17,6 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
-});
-
-// Iconos personalizados para Pokéstops y gimnasios
-const pokestopIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  shadowAnchor: [12, 41]
-});
-
-const gymIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  shadowAnchor: [12, 41]
 });
 
 // Componente para manejar el zoom
@@ -54,27 +36,10 @@ const MapController: React.FC<{ onZoomEnd: (zoom: number) => void }> = ({ onZoom
   return null;
 };
 
-interface Pokemon {
-  id: number;
-  name: string;
-  position: [number, number];
-  sprite: string;
-  types?: string[];
-  height?: number;
-  weight?: number;
-}
-
-interface PokeStop {
-  id: string;
-  name: string;
-  position: [number, number];
-  type: 'pokestop' | 'gym';
-}
-
 const PokemonMap: React.FC = () => {
   const [position, setPosition] = useState<[number, number]>([41.3851, 2.1734]); // Barcelona por defecto
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [pokeStops, setPokeStops] = useState<PokeStop[]>([]);
+  const [pokeStops, setPokeStops] = useState<PokeStopType[]>([]);
   const [zoom, setZoom] = useState<number>(13);
   const [currentLocationName, setCurrentLocationName] = useState<string>('');
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
@@ -119,6 +84,46 @@ const PokemonMap: React.FC = () => {
       getLocationName(position[0], position[1]);
     }
   }, []);
+
+  // Cargar datos guardados
+  useEffect(() => {
+    // Cargar pokémon capturados
+    const savedPokemon = getFromLocalStorage('capturedPokemons', []);
+    if (savedPokemon) {
+      setCapturedPokemons(savedPokemon);
+    }
+    
+    // Cargar datos del jugador
+    const savedPlayerData = getFromLocalStorage('playerData', { level: 1, xp: 0, badges: [] });
+    if (savedPlayerData) {
+      setPlayerLevel(savedPlayerData.level || 1);
+      setPlayerXp(savedPlayerData.xp || 0);
+      setBadges(savedPlayerData.badges || []);
+    }
+    
+    // Inicializar inventario
+    setInventory({
+      'Poké Ball': 0,
+      'Super Ball': 0,
+      'Ultra Ball': 0,
+      'Poción': 0,
+      'Super Poción': 0,
+      'Revivir': 0
+    });
+  }, []);
+
+  // Guardar datos cuando cambien
+  useEffect(() => {
+    saveToLocalStorage('capturedPokemons', capturedPokemons);
+  }, [capturedPokemons]);
+
+  useEffect(() => {
+    saveToLocalStorage('playerData', {
+      level: playerLevel,
+      xp: playerXp,
+      badges: badges
+    });
+  }, [playerLevel, playerXp, badges]);
 
   const getLocationName = async (lat: number, lon: number) => {
     try {
@@ -475,17 +480,6 @@ const PokemonMap: React.FC = () => {
   };
 
   useEffect(() => {
-    const savedPokemon = localStorage.getItem('capturedPokemons');
-    if (savedPokemon) {
-      setCapturedPokemons(JSON.parse(savedPokemon));
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('capturedPokemons', JSON.stringify(capturedPokemons));
-  }, [capturedPokemons]);
-
-  useEffect(() => {
     // Verificar si hay pokeparadas, y si no, crearlas
     if (pokeStops.length === 0) {
       console.log("No se encontraron pokeparadas, generando globales...");
@@ -552,24 +546,6 @@ const PokemonMap: React.FC = () => {
     setShowInventory(true);
     setShowCollection(false); // Cerrar colección si está abierta
   };
-
-  useEffect(() => {
-    const savedPlayerData = localStorage.getItem('playerData');
-    if (savedPlayerData) {
-      const data = JSON.parse(savedPlayerData);
-      setPlayerLevel(data.level || 1);
-      setPlayerXp(data.xp || 0);
-      setBadges(data.badges || []);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('playerData', JSON.stringify({
-      level: playerLevel,
-      xp: playerXp,
-      badges: badges
-    }));
-  }, [playerLevel, playerXp, badges]);
 
   const handleGymBattleWon = (badge: string, xp: number) => {
     if (!badges.includes(badge)) {

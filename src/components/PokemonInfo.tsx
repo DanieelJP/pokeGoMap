@@ -1,15 +1,10 @@
 import React from 'react';
 import './PokemonInfo.css';
+import './common.css';
+import { Pokemon } from './types';
 
 interface PokemonInfoProps {
-  pokemon: {
-    id: number;
-    name: string;
-    sprite: string;
-    types?: string[];
-    height?: number;
-    weight?: number;
-  };
+  pokemon: Pokemon;
   onClose: () => void;
   onCapture: () => void;
 }

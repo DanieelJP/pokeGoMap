@@ -3,16 +3,10 @@ import { Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import axios from 'axios';
 import './Gym.css';
-
-const gymIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
-  shadowAnchor: [12, 41]
-});
+import './common.css';
+import { gymIcon } from './icons';
+import { saveToLocalStorage, getFromLocalStorage } from '../utils/storage';
+import { GymPokemon } from './types';
 
 interface GymProps {
   id: string;
@@ -20,15 +14,6 @@ interface GymProps {
   position: [number, number];
   onBattleWon: (reward: string, xp: number) => void;
   capturedPokemons: any[];
-}
-
-interface GymPokemon {
-  id: number;
-  name: string;
-  sprite: string;
-  hp: number;
-  maxHp: number;
-  level: number;
 }
 
 const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPokemons }) => {
@@ -48,9 +33,9 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
 
   // Cargar el estado del gimnasio desde localStorage
   useEffect(() => {
-    const savedState = localStorage.getItem(`gym_${id}`);
+    const savedState = getFromLocalStorage(`gym_${id}`, null);
     if (savedState) {
-      const { completed, badge, lastBattleTime } = JSON.parse(savedState);
+      const { completed, badge, lastBattleTime } = savedState;
       setCompleted(completed);
       setBadge(badge);
       
@@ -201,11 +186,11 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
       ]);
       
       // Guardar estado en localStorage
-      localStorage.setItem(`gym_${id}`, JSON.stringify({
+      saveToLocalStorage(`gym_${id}`, {
         completed: true,
         badge: badgeName,
         lastBattleTime: Date.now()
-      }));
+      });
       
       setCompleted(true);
       setBadge(badgeName);
@@ -236,7 +221,7 @@ const Gym: React.FC<GymProps> = ({ id, name, position, onBattleWon, capturedPoke
   useEffect(() => {
     return () => {
       // Limpiar el estado del gimnasio cuando el componente se desmonta
-      localStorage.removeItem(`gym_${id}`);
+      saveToLocalStorage(`gym_${id}`, null);
     };
   }, [id]);
 
