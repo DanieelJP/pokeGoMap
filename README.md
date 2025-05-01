@@ -29,18 +29,18 @@ Poke GO Map es una aplicación web que emula la experiencia de Pokémon GO, perm
 
 1. Clona el repositorio:
 ```bash
-git clone https://github.com/DanielJP/pokeGoMap.git
+git clone https://github.com/DanieelJP/pokeGoMap.git
 ```
 
 2. Instala las dependencias:
 ```bash
-cd poke-go-map
+cd pokeGoMap
 npm install
 ```
 
 3. Inicia el servidor de desarrollo:
 ```bash
-npm run dev
+npm start
 ```
 
 ## 🎮 Cómo Jugar
@@ -48,24 +48,9 @@ npm run dev
 2. Interactúa con los PokéStops haciendo clic y girándolos
 3. Visita los Gimnasios para batallar
 4. Encuentra y captura Pokémon salvajes
-5. Utiliza los filtros para mostrar diferentes tipos de ubicaciones
 
-## 🤝 Contribución
-Si deseas contribuir al proyecto:
 
-1. Haz Fork del repositorio
-2. Crea una rama para tu característica (`git checkout -b feature/NuevaCaracteristica`)
-3. Realiza tus cambios y haz commit (`git commit -m 'Añade nueva característica'`)
-4. Sube los cambios (`git push origin feature/NuevaCaracteristica`)
-5. Abre un Pull Request
 
 ## 📄 Licencia
-Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE.md](LICENSE.md) para más detalles.
-
-## 🔜 Próximas Características
-- [ ] Sistema de batalla en gimnasios
-- [ ] Más tipos de Pokémon
-- [ ] Sistema de recompensas en PokéStops
-- [ ] Eventos especiales
-- [ ] Sistema de niveles de entrenador
+Este proyecto está bajo la Licencia MIT. 
 
